@@ -23,6 +23,7 @@
 		"npm": ">=1.2.14"
 	},
 	"dependencies": {
+		"sms": ">=0.0.5",
 		"shopping-list": "~0.0.0"
     }
 }
