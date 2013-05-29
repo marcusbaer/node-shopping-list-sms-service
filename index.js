@@ -1,6 +1,9 @@
 ﻿var argv = require('optimist').argv;
 var _ = require('underscore');
+var Backbone = require('backbone');
 var smsd = require('../sms/index').reader;
+var dirty = require('dirty');
+var db = dirty(argv.datasource || '../data/list.db');
 
 // TESTE TASKS
 
@@ -16,15 +19,86 @@ if (argv.test) {
 	console.log(task);
 
 }	
-	
-smsd.readMessages(function filterMessages(storedMessages) {
-	storedMessages.forEach(function (message) {
-		var task = detectTask(message.get('message'));
-		if (!_.isEmpty(task)) {
-			console.log(task);
-		}
-	});
+
+var Item = Backbone.Model.extend({
+	defaults: {
+		due: null,
+		quantity: 1,
+		product: '',
+		trader: '',
+		store: '',
+	}
 });
+
+var Items = Backbone.Collection.extend({
+	model: Item
+});
+
+var list = new Items();
+
+initialize();
+
+function initialize () {
+	loadData(function dataLoaded() {
+		readTasks(function(tasks){
+			for (var i=0; i<tasks.length; i++) {
+				executeTask(tasks[i]);
+			}
+			saveData();
+		});
+	});
+}
+
+function readTasks (callback) {
+	var tasks = [];
+	smsd.readMessages(function filterMessages(storedMessages) {
+		storedMessages.forEach(function (message) {
+			var task = detectTask(message.get('message'));
+			if (!_.isEmpty(task)) {
+				tasks.push(task);
+			}
+		});
+		callback(tasks);
+	});
+}
+	
+function executeTask (task) {
+	//console.log(task);
+	switch (task.command) {
+		case 'add':
+			list.add({
+				due: task.due,
+				quantity: task.quantity || 1,
+				product: task.product,
+				trader: task.trader || '',
+				store: task.store || '',
+			});
+			break;
+		case 'get':
+			var filter = {};
+			if (task.due) filter.due = task.due;
+			if (task.trader) filter.trader = task.trader;
+			if (task.store) filter.store = task.store;
+			var match = list.where(filter);
+			console.log("match...");
+			console.log(match);
+			break;
+	}
+}
+	
+function loadData (callback) {
+	db.on('load', function() {
+		list = new Items(db.get('list') || []);
+		callback();
+	});
+}
+
+function saveData () {
+	db.set("list", list, function listSaved (){
+		console.log("saved..");
+		console.log(list);
+	});
+}
 
 function detectTask (message) {
 
