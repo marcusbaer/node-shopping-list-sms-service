@@ -7,3 +7,5 @@ Command line parameters
 ------------------------------
 
 - test: enables demonstration of task descriptions
+- try: execute single commands, e.g. "Einkauf?"
+- shoppingdb: another data source

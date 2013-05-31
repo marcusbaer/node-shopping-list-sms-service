@@ -3,7 +3,8 @@ var _ = require('underscore');
 var Backbone = require('backbone');
 var smsd = require('../sms/index').reader;
 var dirty = require('dirty');
-var db = dirty(argv.shoppingdb || '../data/list.db');
+var db = dirty(argv.shoppingdb || './data/list.db');
+var db2 = dirty(argv.shoppingdb || './data/hashes.db');
 
 // TESTE TASKS
 
@@ -38,14 +39,29 @@ var Items = Backbone.Collection.extend({
 var list = new Items();
 var hashes = [];
 
-initialize();
+if (argv.try) {
+
+    loadData(function dataLoaded() {
+        var isDataChanged = executeTask( detectTask(argv.try) );
+        if (isDataChanged) {
+            saveData();
+        }
+    });
+
+} else {
+
+    initialize();
+
+}
 
 function initialize () {
 	loadData(function dataLoaded() {
 		readTasks(function(tasks){
+            var isDataChanged = false;
+            console.log(tasks);
 			for (var i=0; i<tasks.length; i++) {
-				executeTask(tasks[i]);
-                if (i === tasks.length-1) {
+                isDataChanged = isDataChanged || executeTask(tasks[i]);
+                if (i === tasks.length-1 && isDataChanged) {
                     saveData();
                 }
 			}
@@ -70,18 +86,20 @@ function readTasks (callback) {
                 }
             }
 		});
-        newMessageDetected = true;
         if (newMessageDetected) {
-            saveHashes();
+            //saveHashes(); // disable for testing get commands
         }
 		callback(tasks);
 	});
 }
 	
 function executeTask (task) {
-//	console.log(task);
+    var isDataChanged = false;
+	console.log("execute: " + task.origin);
+    console.log(task);
 	switch (task.command) {
 		case 'add':
+            isDataChanged = true;
 			list.add({
 				due: task.due,
 				quantity: task.quantity || 1,
@@ -93,35 +111,57 @@ function executeTask (task) {
 			break;
 		case 'get':
 			var filter = {};
+            var matchGiven = [];
 			if (task.due) filter.due = task.due;
-			if (task.trader) filter.trader = task.trader;
+            if (task.trader) {
+                console.log("add trader filter");
+                filter.trader = task.trader;
+            }
 			if (task.store) filter.store = task.store;
-			var match = list.where(filter);
-			//console.log("match...");
-			console.log(JSON.stringify(match));
+            if (_.isEmpty(filter)) {
+                matchGiven = list;
+            } else {
+                matchGiven = list.where(filter);
+            }
+            if (task.trader) {
+                filter.trader = '';
+                var matchAny = list.where(filter);
+                matchGiven = _.union(matchGiven, matchAny);
+            }
+//			console.log("match...");
+//			console.log(JSON.stringify(match));
+            reply(matchGiven);
 			break;
 	}
+    return isDataChanged;
 }
-	
+
+function reply (collection) {
+    var messages = [];
+    collection.forEach(function (model){
+        messages.push(model.get('product'));
+    });
+    var text = messages.join(', ');
+    console.log(text);
+}
+
 function loadData (callback) {
 	db.on('load', function() {
 		list = new Items(db.get('list') || []);
-        hashes = db.get('hashes') || [];
+        hashes = db2.get('hashes') || [];
 		callback();
 	});
 }
 
 function saveHashes () {
-    db.set("hashes", hashes, function hashesSaved (){
+    db2.set("hashes", hashes, function hashesSaved (){
     });
 }
 
 function saveData () {
-    console.log("save list now..");
-    console.log(list.toJSON());
 	db.set("list", list, function listSaved (){
-        console.log("saved..");
-        console.log(list);
+        console.log("list saved..");
+//        console.log(list);
 	});
 }
 
