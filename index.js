@@ -3,7 +3,7 @@ var _ = require('underscore');
 var Backbone = require('backbone');
 var smsd = require('../sms/index').reader;
 var dirty = require('dirty');
-var db = dirty(argv.datasource || '../data/list.db');
+var db = dirty(argv.shoppingdb || '../data/list.db');
 
 // TESTE TASKS
 
@@ -27,6 +27,7 @@ var Item = Backbone.Model.extend({
 		product: '',
 		trader: '',
 		store: '',
+        origin: ''
 	}
 });
 
@@ -35,6 +36,7 @@ var Items = Backbone.Collection.extend({
 });
 
 var list = new Items();
+var hashes = [];
 
 initialize();
 
@@ -43,8 +45,10 @@ function initialize () {
 		readTasks(function(tasks){
 			for (var i=0; i<tasks.length; i++) {
 				executeTask(tasks[i]);
+                if (i === tasks.length-1) {
+                    saveData();
+                }
 			}
-			saveData();
 		});
 	});
 }
@@ -52,18 +56,30 @@ function initialize () {
 function readTasks (callback) {
 	var tasks = [];
 	smsd.readMessages(function filterMessages(storedMessages) {
+        var newMessageDetected = false;
 		storedMessages.forEach(function (message) {
-			var task = detectTask(message.get('message'));
-			if (!_.isEmpty(task)) {
-				tasks.push(task);
-			}
+            if (hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
+                // ignore message
+                console.log("ignore " + message.get('hash'));
+            } else {
+                newMessageDetected = true;
+                hashes.push(message.get('hash'));
+                var task = detectTask(message.get('message'));
+                if (!_.isEmpty(task)) {
+                    tasks.push(task);
+                }
+            }
 		});
+        newMessageDetected = true;
+        if (newMessageDetected) {
+            saveHashes();
+        }
 		callback(tasks);
 	});
 }
 	
 function executeTask (task) {
-	//console.log(task);
+//	console.log(task);
 	switch (task.command) {
 		case 'add':
 			list.add({
@@ -72,6 +88,7 @@ function executeTask (task) {
 				product: task.product,
 				trader: task.trader || '',
 				store: task.store || '',
+                origin: task.origin
 			});
 			break;
 		case 'get':
@@ -80,8 +97,8 @@ function executeTask (task) {
 			if (task.trader) filter.trader = task.trader;
 			if (task.store) filter.store = task.store;
 			var match = list.where(filter);
-			console.log("match...");
-			console.log(match);
+			//console.log("match...");
+			console.log(JSON.stringify(match));
 			break;
 	}
 }
@@ -89,14 +106,22 @@ function executeTask (task) {
 function loadData (callback) {
 	db.on('load', function() {
 		list = new Items(db.get('list') || []);
+        hashes = db.get('hashes') || [];
 		callback();
 	});
 }
 
+function saveHashes () {
+    db.set("hashes", hashes, function hashesSaved (){
+    });
+}
+
 function saveData () {
+    console.log("save list now..");
+    console.log(list.toJSON());
 	db.set("list", list, function listSaved (){
-		console.log("saved..");
-		console.log(list);
+        console.log("saved..");
+        console.log(list);
 	});
 }
 
@@ -130,6 +155,7 @@ function detectTask (message) {
 							product: matcher[3].replace(/ /g,''),
 							trader: matcher[4].replace(/ bei /g,''),
 							store: matcher[5].replace(/^ /g,''),
+                            origin: message
 						};
 						if (!task.product || task.product === 'bei') {
 							throw Error('Product required');
@@ -141,6 +167,7 @@ function detectTask (message) {
 							due: matcher[1].replace(/ am /,''),
 							trader: matcher[2].replace(/ bei /g,''),
 							store: matcher[3].replace(/^ /g,''),
+                            origin: message
 						};
 						break;
 					case 'info':
@@ -148,6 +175,7 @@ function detectTask (message) {
 							command: t,
 							trader: matcher[1].replace(/ /g,''),
 							store: matcher[2].replace(/^ /g,''),
+                            origin: message
 						};
 						break;
 				}
