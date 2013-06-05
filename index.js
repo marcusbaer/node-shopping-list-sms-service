@@ -1,7 +1,7 @@
 ﻿var argv = require('optimist').argv;
 var _ = require('underscore');
 var Backbone = require('backbone');
-var smsd = require('../sms/index').reader;
+var smsd = require('../sms/index');
 var dirty = require('dirty');
 var db = dirty(argv.shoppingdb || './data/list.db');
 var db2 = dirty(argv.shoppingdb || './data/hashes.db');
@@ -38,6 +38,7 @@ var Items = Backbone.Collection.extend({
 
 var list = new Items();
 var hashes = [];
+var phoneNumber = null;
 
 if (argv.try) {
 
@@ -71,7 +72,7 @@ function initialize () {
 
 function readTasks (callback) {
 	var tasks = [];
-	smsd.readMessages(function filterMessages(storedMessages) {
+	smsd.reader.readMessages(function filterMessages(storedMessages) {
         var newMessageDetected = false;
 		storedMessages.forEach(function (message) {
             if (hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
@@ -96,7 +97,8 @@ function readTasks (callback) {
 function executeTask (task) {
     var isDataChanged = false;
 	console.log("execute: " + task.origin);
-    console.log(task);
+    //console.log(task);
+	phoneNumber = task.phoneNumber;
 	switch (task.command) {
 		case 'add':
             isDataChanged = true;
@@ -142,7 +144,20 @@ function reply (collection) {
         messages.push(model.get('product'));
     });
     var text = messages.join(', ');
-    console.log(text);
+    submitReply(phoneNumber, text);
+}
+
+function submitReply (to, message) {
+	if (to && message) {
+		console.log("reply to " + to + ": " + message);
+		smsd.sender.sendMessage({
+			to: to,
+			message: message,
+			success: function(response) {
+				//console.log(response);
+			}
+		});
+	}
 }
 
 function loadData (callback) {
