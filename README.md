@@ -8,4 +8,5 @@ Command line parameters
 
 - test: enables demonstration of task descriptions
 - try: execute single commands, e.g. "Einkauf?"
+- phone: a phone number, used in combination with try parameter
 - shoppingdb: another data source
