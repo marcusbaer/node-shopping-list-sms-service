@@ -43,6 +43,7 @@ var phoneNumber = null;
 if (argv.try) {
 
     loadData(function dataLoaded() {
+		phoneNumber = argv.phone;
         var isDataChanged = executeTask( detectTask(argv.try) );
         if (isDataChanged) {
             saveData();
@@ -83,6 +84,7 @@ function readTasks (callback) {
                 hashes.push(message.get('hash'));
                 var task = detectTask(message.get('message'));
                 if (!_.isEmpty(task)) {
+					phoneNumber = message.phoneNumber;
                     tasks.push(task);
                 }
             }
@@ -98,7 +100,6 @@ function executeTask (task) {
     var isDataChanged = false;
 	console.log("execute: " + task.origin);
     //console.log(task);
-	phoneNumber = task.phoneNumber;
 	switch (task.command) {
 		case 'add':
             isDataChanged = true;
@@ -148,15 +149,19 @@ function reply (collection) {
 }
 
 function submitReply (to, message) {
+	console.log("reply to " + (to || '???') + ": " + message);
 	if (to && message) {
-		console.log("reply to " + to + ": " + message);
-		smsd.sender.sendMessage({
-			to: to,
-			message: message,
-			success: function(response) {
-				//console.log(response);
-			}
-		});
+		if (argv.try) {
+			console.log("Message not sent in TRY mode!");
+		} else {
+			smsd.sender.sendMessage({
+				to: to,
+				message: message,
+				success: function(response) {
+					//console.log(response);
+				}
+			});
+		}
 	}
 }
 
