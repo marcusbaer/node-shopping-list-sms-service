@@ -6,9 +6,9 @@ var dirty = require('dirty');
 var db = dirty(argv.shoppingdb || './data/list.db');
 var db2 = dirty(argv.shoppingdb || './data/hashes.db');
 
-// TESTE TASKS
+// DEMO TASKS
 
-if (argv.test) {
+if (argv.demo) {
 
 	var task = detectTask('Kaufe am Do 3x Butter bei Aldi Hohe Str');
 	console.log(task);
@@ -39,12 +39,13 @@ var Items = Backbone.Collection.extend({
 var list = new Items();
 var hashes = [];
 var phoneNumber = null;
+var verboseMode = argv.v || false;
 
-if (argv.try) {
+if (argv.cmd || argv.try) {
 
     loadData(function dataLoaded() {
-		phoneNumber = argv.phone;
-        var isDataChanged = executeTask( detectTask(argv.try) );
+		phoneNumber = argv.user || argv.u;
+        var isDataChanged = executeTask( detectTask(argv.cmd || argv.try) );
         if (isDataChanged) {
             saveData();
         }
@@ -60,7 +61,9 @@ function initialize () {
 	loadData(function dataLoaded() {
 		readTasks(function(tasks){
             var isDataChanged = false;
-            console.log(tasks);
+            if (verboseMode) {
+                console.log(tasks);
+            }
 			for (var i=0; i<tasks.length; i++) {
                 isDataChanged = isDataChanged || executeTask(tasks[i]);
                 if (i === tasks.length-1 && isDataChanged) {
@@ -78,7 +81,9 @@ function readTasks (callback) {
 		storedMessages.forEach(function (message) {
             if (hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
                 // ignore message
-                console.log("ignore " + message.get('hash'));
+                if (verboseMode) {
+                    console.log("ignore " + message.get('hash'));
+                }
             } else {
                 newMessageDetected = true;
                 hashes.push(message.get('hash'));
@@ -90,7 +95,7 @@ function readTasks (callback) {
             }
 		});
         if (newMessageDetected) {
-            //saveHashes(); // disable for testing get commands
+            //saveHashes(); // disable for testing ls commands
         }
 		callback(tasks);
 	});
@@ -98,8 +103,10 @@ function readTasks (callback) {
 	
 function executeTask (task) {
     var isDataChanged = false;
-	console.log("execute: " + task.origin);
-    //console.log(task);
+    if (verboseMode) {
+        console.log("execute: " + task.origin);
+        //console.log(task);
+    }
 	switch (task.command) {
 		case 'add':
             isDataChanged = true;
@@ -112,12 +119,12 @@ function executeTask (task) {
                 origin: task.origin
 			});
 			break;
-		case 'get':
+		case 'ls':
 			var filter = {};
             var matchGiven = [];
 			if (task.due) filter.due = task.due;
             if (task.trader) {
-                console.log("add trader filter");
+                // add trader filter
                 filter.trader = task.trader;
             }
 			if (task.store) filter.store = task.store;
@@ -135,6 +142,29 @@ function executeTask (task) {
 //			console.log(JSON.stringify(match));
             reply(matchGiven);
 			break;
+        case 'rm':
+            var filter = {};
+            var matchGiven = [];
+            if (task.due) filter.due = task.due;
+            if (task.trader) {
+                // add trader filter
+                filter.trader = task.trader;
+            }
+            if (task.store) filter.store = task.store;
+            if (_.isEmpty(filter)) {
+                matchGiven = list;
+            } else {
+                matchGiven = list.where(filter);
+            }
+            if (task.trader) {
+                filter.trader = '';
+                var matchAny = list.where(filter);
+                matchGiven = _.union(matchGiven, matchAny);
+            }
+//			console.log("match...");
+//			console.log(JSON.stringify(match));
+            remove(matchGiven);
+            break;
 	}
     return isDataChanged;
 }
@@ -148,8 +178,19 @@ function reply (collection) {
     submitReply(phoneNumber, text);
 }
 
+function remove (collection) {
+    var messages = [];
+    collection.forEach(function (model){
+        messages.push(model.get('product'));
+    });
+    var text = messages.join(', ');
+    submitReply(phoneNumber, text + ' wurden entfernt.');
+}
+
 function submitReply (to, message) {
-	console.log("reply to " + (to || '???') + ": " + message);
+    if (verboseMode) {
+        console.log("reply to " + (to || '???') + ": " + message);
+    }
 	if (to && message) {
 		if (argv.try) {
 			console.log("Message not sent in TRY mode!");
@@ -180,8 +221,10 @@ function saveHashes () {
 
 function saveData () {
 	db.set("list", list, function listSaved (){
-        console.log("list saved..");
+        if (verboseMode) {
+            console.log("list saved..");
 //        console.log(list);
+        }
 	});
 }
 
@@ -189,7 +232,8 @@ function detectTask (message) {
 
 	var tasks = {
 		'add': 'kaufe( am [a-z]{0,2}){0,1}( [0-9]{1,3}x){0,1}( [a-z]{3,})( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}',
-		'get': 'einkauf( am [a-z]{0,2}){0,1}( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?',
+		'ls': 'einkauf( am [a-z]{0,2}){0,1}( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?',
+        'rm': 'eingekauft( am [a-z]{0,2}){0,1}( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\',
 		'info': 'geschäft( [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?'
 	};
 
@@ -204,7 +248,9 @@ function detectTask (message) {
 			for (var i=0; i<matcher.length; i++) {
 				matcher[i] = matcher[i] || ''
 			}
-			//console.log(matcher);
+            if (verboseMode) {
+                //console.log(matcher);
+            }
 			if (matcher.length>1) {
 				switch (t) {
 					case 'add':
@@ -221,7 +267,7 @@ function detectTask (message) {
 							throw Error('Product required');
 						}
 						break;
-					case 'get':
+					case 'ls':
 						task = {
 							command: t,
 							due: matcher[1].replace(/ am /,''),
@@ -230,6 +276,15 @@ function detectTask (message) {
                             origin: message
 						};
 						break;
+                    case 'rm':
+                        task = {
+                            command: t,
+                            due: matcher[1].replace(/ am /,''),
+                            trader: matcher[2].replace(/ bei /g,''),
+                            store: matcher[3].replace(/^ /g,''),
+                            origin: message
+                        };
+                        break;
 					case 'info':
 						task = {
 							command: t,
