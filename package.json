@@ -1,6 +1,6 @@
 ﻿{
 	"name": "shopping-list-sms-service",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "An SMS service for a shopping list.",
 	"homepage": "http://github.com/marcusbaer/node-shopping-list-sms-service",
     "keywords": ["shopping", "list", "service", "sms"],
@@ -23,8 +23,7 @@
 		"npm": ">=1.2.14"
 	},
 	"dependencies": {
-		"sms": ">=0.0.6",
-		"shopping-list": "~0.0.0"
+		"sms": ">=0.0.7"
     },
     "bin": {
         "smsshopping": "./index.js"
