@@ -19,6 +19,9 @@ if (argv.demo) {
 	var task = detectTask('Geschäft Aldi Hohe Str?');
 	console.log(task);
 
+	var task = detectTask('eingekauft am Do bei Aldi');
+	console.log(task);
+
 }	
 
 var Item = Backbone.Model.extend({
@@ -76,7 +79,7 @@ function initialize () {
 
 function readTasks (callback) {
 	var tasks = [];
-	smsd.reader.readMessages(function filterMessages(storedMessages) {
+	smsd.reader.fetchMessages(function filterMessages(storedMessages) {
         var newMessageDetected = false;
 		storedMessages.forEach(function (message) {
             if (hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
@@ -207,11 +210,18 @@ function submitReply (to, message) {
 }
 
 function loadData (callback) {
+/*
 	db.on('load', function() {
 		list = new Items(db.get('list') || []);
         hashes = db2.get('hashes') || [];
 		callback();
 	});
+*/
+	callback();
+}
+
+function removeMessages (callback) {
+	smsd.reader.removeMessages(callback);
 }
 
 function saveHashes () {
@@ -233,7 +243,7 @@ function detectTask (message) {
 	var tasks = {
 		'add': 'kaufe( am [a-z]{0,2}){0,1}( [0-9]{1,3}x){0,1}( [a-z]{3,})( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}',
 		'ls': 'einkauf( am [a-z]{0,2}){0,1}( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?',
-        'rm': 'eingekauft( am [a-z]{0,2}){0,1}( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\',
+        'rm': 'eingekauft( am [a-z]{0,2}){0,1}( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}',
 		'info': 'geschäft( [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?'
 	};
 
