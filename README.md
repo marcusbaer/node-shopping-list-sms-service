@@ -1,19 +1,17 @@
 node-shopping-list-sms-service
 ==============================
 
-An SMS service for our shopping list
+An SMS service for our shopping assistance.
 
 Installation for Node.js
 ------------------------------
 
-	npm install -g shopping-list-sms-service
+	npm install shopping-list-sms-service -g
 
 Setup
 ------------------------------
 
 1. configure smsd in its file `gateway.config.js`
-2. run smsd: `smsd`
-3. register shopping list SMS service as listener: smsd --register="smsshopping"
 
 Command line parameters
 ------------------------------
