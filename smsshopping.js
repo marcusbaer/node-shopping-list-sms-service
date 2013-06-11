@@ -24,7 +24,10 @@ if (argv.demo) {
 	var task = detectTask('Geschäft Aldi Hohe Str?');
 	console.log(task);
 
-	var task = detectTask('eingekauft am Do bei Aldi');
+	var task = detectTask('Butter gekauft');
+	console.log(task);
+
+	var task = detectTask('Schema');
 	console.log(task);
 
 }	
@@ -153,25 +156,14 @@ function executeTask (task) {
         case 'rm':
             var filter = {};
             var matchGiven = [];
-            if (task.due) filter.due = task.due;
-            if (task.trader) {
-                // add trader filter
-                filter.trader = task.trader;
-            }
-            if (task.store) filter.store = task.store;
-            if (_.isEmpty(filter)) {
-                matchGiven = list;
-            } else {
-                matchGiven = list.where(filter);
-            }
-            if (task.trader) {
-                filter.trader = '';
-                var matchAny = list.where(filter);
-                matchGiven = _.union(matchGiven, matchAny);
-            }
+            if (task.product) filter.product = task.product;
+            matchGiven = list.where(filter);
 //			console.log("match...");
-//			console.log(JSON.stringify(match));
+//			console.log(JSON.stringify(matchGiven));
             remove(matchGiven);
+            break;
+        case 'man':
+            submitReply(phoneNumber, 'Setzen und abfragen: (Kaufe|Einkauf)( am Do)( 3x)( Butter)( bei Aldi)( Hohe Str)(?) / Löschen: Butter gekauft');
             break;
 	}
     return isDataChanged;
@@ -192,7 +184,9 @@ function remove (collection) {
         messages.push(model.get('product'));
     });
     var text = messages.join(', ');
-    submitReply(phoneNumber, text + ' wurden entfernt.');
+	list.remove(collection);
+	saveData();
+    submitReply(phoneNumber, text + ' wurde entfernt.');
 }
 
 function submitReply (to, message) {
@@ -250,7 +244,8 @@ function detectTask (message) {
 	var tasks = {
 		'add': 'kaufe( am [a-z]{0,2}){0,1}( [0-9]{1,3}x){0,1}( [a-z]{3,})( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}',
 		'ls': 'einkauf( am [a-z]{0,2}){0,1}( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?',
-        'rm': 'eingekauft( am [a-z]{0,2}){0,1}( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}',
+        'rm': '([a-z]{3,}) gekauft',
+        'man': 'sche(ma)',
 		'info': 'geschäft( [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?'
 	};
 
@@ -296,9 +291,7 @@ function detectTask (message) {
                     case 'rm':
                         task = {
                             command: t,
-                            due: matcher[1].replace(/ am /,''),
-                            trader: matcher[2].replace(/ bei /g,''),
-                            store: matcher[3].replace(/^ /g,''),
+							product: matcher[1].replace(/ /g,''),
                             origin: message
                         };
                         break;
@@ -310,6 +303,12 @@ function detectTask (message) {
                             origin: message
 						};
 						break;
+                    case 'man':
+                        task = {
+                            command: t,
+                            origin: message
+                        };
+                        break;
 				}
 				if (!task.command) {
 					throw Error('Task required');

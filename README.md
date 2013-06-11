@@ -36,3 +36,5 @@ Actually understood commands
 - Kaufe Butter
 - Einkauf am Do bei Aldi Hohe Str?
 - Einkauf?
+- Butter gekauft
+- Schema
