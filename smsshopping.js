@@ -2,9 +2,13 @@
 var _ = require('underscore');
 var Backbone = require('backbone');
 var smsd = require('../sms/index');
+//var smsd = require('sms');
 var dirty = require('dirty');
-var db = dirty(argv.shoppingdb || './data/list.db');
-var db2 = dirty(argv.shoppingdb || './data/hashes.db');
+
+var verboseMode = argv.v || false;
+var runDir = argv.d || process.cwd();
+var db = dirty(runDir + '/list.db');
+var db2 = dirty(runDir + '/hashes.db');
 
 // DEMO TASKS
 
@@ -42,7 +46,6 @@ var Items = Backbone.Collection.extend({
 var list = new Items();
 var hashes = [];
 var phoneNumber = null;
-var verboseMode = argv.v || false;
 
 if (argv.cmd || argv.try) {
 
@@ -79,7 +82,8 @@ function initialize () {
 
 function readTasks (callback) {
 	var tasks = [];
-	smsd.reader.fetchMessages(function filterMessages(storedMessages) {
+	//smsd.reader.fetchMessages(function filterMessages(storedMessages) { // fetches directly from gateway
+	smsd.reader.readMessages(function filterMessages(storedMessages) { // reads from data source
         var newMessageDetected = false;
 		storedMessages.forEach(function (message) {
             if (hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
@@ -210,14 +214,12 @@ function submitReply (to, message) {
 }
 
 function loadData (callback) {
-/*
 	db.on('load', function() {
 		list = new Items(db.get('list') || []);
         hashes = db2.get('hashes') || [];
 		callback();
 	});
-*/
-	callback();
+//	callback();
 }
 
 function removeMessages (callback) {
@@ -258,9 +260,9 @@ function detectTask (message) {
 			for (var i=0; i<matcher.length; i++) {
 				matcher[i] = matcher[i] || ''
 			}
-            if (verboseMode) {
-                //console.log(matcher);
-            }
+            //if (verboseMode) {
+            //  console.log(matcher);
+            //}
 			if (matcher.length>1) {
 				switch (t) {
 					case 'add':

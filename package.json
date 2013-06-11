@@ -1,9 +1,9 @@
 {
 	"name": "shopping-list-sms-service",
-	"version": "0.0.3",
-	"description": "An SMS service for a shopping list.",
+	"version": "0.0.5",
+	"description": "An SMS service for a shopping assistance.",
 	"homepage": "http://github.com/marcusbaer/node-shopping-list-sms-service",
-	"keywords": ["shopping", "list", "service", "sms"],
+	"keywords": ["shopping", "list", "assistance", "service", "sms"],
 	"author": "Marcus Baer <info@baer-media.com>",
 	"repository": {
 		"type": "git",
@@ -21,10 +21,10 @@
 		"npm": ">=1.2.14"
 	},
 	"dependencies": {
-		"sms": ">=0.0.8"
-    	},
-    	"bin": {
-        	"smsshopping": "./index.js"
+		"sms": ">=0.0.10"
+	},
+    "bin": {
+        "smsshopping": "./bin/smsshopping"
 	},
 	"main": "./index.js"
 }
