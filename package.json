@@ -1,6 +1,6 @@
 {
 	"name": "shopping-list-sms-service",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"description": "An SMS service for a shopping assistance.",
 	"homepage": "http://github.com/marcusbaer/node-shopping-list-sms-service",
 	"keywords": ["shopping", "list", "assistance", "service", "sms"],
