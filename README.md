@@ -16,9 +16,10 @@ Configure smsd in its file `config.js` first (see documentation there)!
 Running
 ------------------------------
 
-Usually register this service as a listener at smsd:
+Usually register this service as a listener at smsd and let smsd do the rest:
 
-	smsd --register="smsshopping"
+	$ smsd --register="smsshopping"
+	$ smsd
 
 Otherwise run on command line, if messages are available by smsd (messages.db file in your current directory is not empty or undefined):
 

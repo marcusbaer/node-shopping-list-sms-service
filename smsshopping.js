@@ -51,7 +51,7 @@ var phoneNumber = null;
 if (argv.cmd || argv.try) {
 
     loadData(function dataLoaded() {
-		phoneNumber = argv.to || argv.u;
+		phoneNumber = argv.to;
         var isDataChanged = executeTask( detectTask(argv.cmd || argv.try) );
         if (isDataChanged) {
             saveData();
@@ -83,8 +83,8 @@ function initialize () {
 
 function readTasks (callback) {
 	var tasks = [];
-	//smsd.reader.fetchMessagesFromGateway(function filterMessages(storedMessages) { // fetches directly from gateway
-	smsd.reader.readMessagesFromDb(function filterMessages(storedMessages) { // reads from data source
+	//smsd.fetchMessagesFromGateway(function filterMessages(storedMessages) { // fetches directly from gateway
+	smsd.readMessagesFromDb(function filterMessages(storedMessages) { // reads from data source
         var newMessageDetected = false;
 		storedMessages.forEach(function (message) {
             if (hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
@@ -97,13 +97,13 @@ function readTasks (callback) {
                 hashes.push(message.get('hash'));
                 var task = detectTask(message.get('message'));
                 if (!_.isEmpty(task)) {
-					phoneNumber = message.phoneNumber;
+					phoneNumber = message.get('phoneNumber');
                     tasks.push(task);
                 }
             }
 		});
         if (newMessageDetected) {
-            //saveHashes(); // disable for testing ls commands
+            saveHashes();
         }
 		callback(tasks);
 	});
@@ -208,7 +208,7 @@ function submitReply (to, message) {
 		var to = new String(to);
 		to = (to.indexOf('+') !== 0) ? '+' + to : to;
 
-		smsd.sender.sendMessage({
+		smsd.sendMessage({
 			to: to,
 			message: message,
 			success: function(response) {
@@ -228,7 +228,7 @@ function loadData (callback) {
 }
 
 function removeMessages (callback) {
-	smsd.reader.removeMessagesFromGateway(callback);
+	smsd.removeMessagesFromGateway(callback);
 }
 
 function saveHashes () {
