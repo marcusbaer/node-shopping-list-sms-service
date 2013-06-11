@@ -1,7 +1,7 @@
 node-shopping-list-sms-service
 ==============================
 
-An SMS service for our shopping assistance.
+An SMS service for our shopping assistance. Actually it is only speaking some German.
 
 Installation for Node.js
 ------------------------------
@@ -11,29 +11,22 @@ Installation for Node.js
 Setup
 ------------------------------
 
-1. configure smsd in its file `gateway.config.js`
+Configure smsd in its file `config.js` first (see documentation there)!
 
-Command line parameters
+Running
 ------------------------------
 
-- cmd: set a command to parse instead of datasource commands
-- shoppingdb: another data source
-- demo: enables demonstration of task descriptions
-- try: execute single commands, e.g. "Einkauf?"
-- user: a user identified by a phone number, used in combination with cmd parameter
-- u: same as user parameter
-- v: verbose mode to get more output
+Usually register this service as a listener at smsd:
 
-Example
------------------------------
+	smsd --register="smsshopping"
 
-Start in normal mode: `smsshopping`
+Otherwise run on command line, if messages are available by smsd (messages.db file in your current directory is not empty or undefined):
 
-Start in command mode: `smsshopping -cmd "Einkauf?" -u "+4912345678910"`
-
-Start in demo mode: `smsshopping -demo`
-
-Start in try mode: `smsshopping -try "Einkauf?" -u "+4912345678910"`
+	$ smsshopping											--> run normal
+	$ smsshopping --demo    								--> run included demonstration of task descriptions and nothing else
+	$ smsshopping --try "Einkauf?"   						--> run a single command manually and get the result printed out without sending messages
+	$ smsshopping --cmd "Einkauf?" --to "+491234567"		--> run a command manually and send result to a phone number
+	$ smsshopping -v										--> always use -v to set verbose mode
 
 Actually understood commands
 -----------------------------

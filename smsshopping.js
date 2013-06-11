@@ -1,4 +1,5 @@
 ﻿var argv = require('optimist').argv;
+var sys = require('util');
 var _ = require('underscore');
 var Backbone = require('backbone');
 var smsd = require('../sms/index');
@@ -50,7 +51,7 @@ var phoneNumber = null;
 if (argv.cmd || argv.try) {
 
     loadData(function dataLoaded() {
-		phoneNumber = argv.user || argv.u;
+		phoneNumber = argv.to || argv.u;
         var isDataChanged = executeTask( detectTask(argv.cmd || argv.try) );
         if (isDataChanged) {
             saveData();
@@ -67,9 +68,9 @@ function initialize () {
 	loadData(function dataLoaded() {
 		readTasks(function(tasks){
             var isDataChanged = false;
-            if (verboseMode) {
-                console.log(tasks);
-            }
+//            if (verboseMode) {
+//                console.log(tasks);
+//            }
 			for (var i=0; i<tasks.length; i++) {
                 isDataChanged = isDataChanged || executeTask(tasks[i]);
                 if (i === tasks.length-1 && isDataChanged) {
@@ -82,8 +83,8 @@ function initialize () {
 
 function readTasks (callback) {
 	var tasks = [];
-	//smsd.reader.fetchMessages(function filterMessages(storedMessages) { // fetches directly from gateway
-	smsd.reader.readMessages(function filterMessages(storedMessages) { // reads from data source
+	//smsd.reader.fetchMessagesFromGateway(function filterMessages(storedMessages) { // fetches directly from gateway
+	smsd.reader.readMessagesFromDb(function filterMessages(storedMessages) { // reads from data source
         var newMessageDetected = false;
 		storedMessages.forEach(function (message) {
             if (hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
@@ -223,7 +224,7 @@ function loadData (callback) {
 }
 
 function removeMessages (callback) {
-	smsd.reader.removeMessages(callback);
+	smsd.reader.removeMessagesFromGateway(callback);
 }
 
 function saveHashes () {
