@@ -111,7 +111,7 @@ function readTasks (callback) {
 	
 function executeTask (task) {
     var isDataChanged = false;
-    if (verboseMode) {
+    if (verboseMode || argv.try) {
         console.log("execute: " + task.origin);
         //console.log(task);
     }
@@ -196,21 +196,25 @@ function remove (collection) {
 }
 
 function submitReply (to, message) {
-    if (verboseMode) {
+    if (argv.try) {
+        console.log("reply to " + (to || '???') + ": " + message);
+		console.log("Message not sent in TRY mode!");
+    } else if (verboseMode) {
         console.log("reply to " + (to || '???') + ": " + message);
     }
-	if (to && message) {
-		if (argv.try) {
-			console.log("Message not sent in TRY mode!");
-		} else {
-			smsd.sender.sendMessage({
-				to: to,
-				message: message,
-				success: function(response) {
-					//console.log(response);
-				}
-			});
-		}
+	if (!argv.try && to && message) {
+
+	// this is a workaround for bug in optimist, please give phone numbers by a leading plus sign including country code
+		var to = new String(to);
+		to = (to.indexOf('+') !== 0) ? '+' + to : to;
+
+		smsd.sender.sendMessage({
+			to: to,
+			message: message,
+			success: function(response) {
+				//console.log(response);
+			}
+		});
 	}
 }
 
