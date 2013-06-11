@@ -242,9 +242,9 @@ function saveData () {
 function detectTask (message) {
 
 	var tasks = {
-		'add': 'kaufe( am [a-z]{0,2}){0,1}( [0-9]{1,3}x){0,1}( [a-z]{3,})( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}',
-		'ls': 'einkauf( am [a-z]{0,2}){0,1}( bei [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?',
-        'rm': '([a-z]{3,}) gekauft',
+		'add': 'kaufe( am [a-z]{0,2}){0,1}( [0-9]{1,3}x){0,1}( [a-zäöüß]{3,})( bei [a-zäöüß]{3,}){0,1}( [a-zäöüß ]{3,}){0,1}',
+		'ls': 'einkauf( am [a-z]{0,2}){0,1}( bei [a-zäöüß]{3,}){0,1}( [a-zäöüß ]{3,}){0,1}\\?',
+        'rm': '([a-zäöüß]{3,}) gekauft',
         'man': 'sche(ma)',
 		'info': 'geschäft( [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?'
 	};
