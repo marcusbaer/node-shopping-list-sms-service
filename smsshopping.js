@@ -1,5 +1,6 @@
 ﻿var argv = require('optimist').argv;
 var sys = require('util');
+var fs = require('fs');
 var _ = require('underscore');
 var Backbone = require('backbone');
 var smsd = require('../sms/index');
@@ -112,12 +113,27 @@ function readTasks (callback) {
 	});
 }
 	
+function zeroFill (val) {
+	val = new String(val);
+	if (val.length === 1) val = '0' + val;
+	return val;
+}	
+	
+function logTask (task) {
+	var d = new Date();
+	var date = d.getFullYear() + '-' + zeroFill(d.getMonth()+1) + '-' + zeroFill(d.getDay()) + ' ' + zeroFill(d.getHours()) + ':' + zeroFill(d.getMinutes()) + ':' + zeroFill(d.getSeconds());
+	fs.appendFile('smsshopping.log', date + "\t" + task + "\n", 'utf8', function(err){
+		//if (err) throw err;
+	});
+}	
+	
 function executeTask (task) {
     var isDataChanged = false;
     if (verboseMode || argv.try) {
         console.log("execute: " + task.origin);
         //console.log(task);
     }
+	logTask(task.origin);
 	switch (task.command) {
 		case 'add':
             isDataChanged = true;
@@ -251,6 +267,8 @@ function detectTask (message) {
 
 	var task = {};
 	
+	message = utf8(message);
+	
 	for (var t in tasks) {
 	
 		var taskreg = new RegExp(tasks[t],'i');
@@ -320,3 +338,9 @@ function detectTask (message) {
 		
 	return task;
 }		
+
+function utf8 (txt) {
+	// http://www.developershome.com/sms/gsmAlphabet.asp
+	// http://spin.atomicobject.com/2011/09/08/converting-utf-8-to-the-7-bit-gsm-default-alphabet/
+    return new Buffer(txt).toString('utf8');
+}
