@@ -124,7 +124,7 @@ function zeroFill (val) {
 	
 function logToFile (filename, text, next) {
 	var d = new Date();
-	var date = d.getFullYear() + '-' + zeroFill(d.getMonth()+1) + '-' + zeroFill(d.getDay()) + ' ' + zeroFill(d.getHours()) + ':' + zeroFill(d.getMinutes()) + ':' + zeroFill(d.getSeconds());
+	var date = d.getFullYear() + '-' + zeroFill(d.getMonth()+1) + '-' + zeroFill(d.getDate()) + ' ' + zeroFill(d.getHours()) + ':' + zeroFill(d.getMinutes()) + ':' + zeroFill(d.getSeconds());
 	fs.appendFile(filename, date + "\t" + text + "\n", 'utf8', next);
 }	
 	
