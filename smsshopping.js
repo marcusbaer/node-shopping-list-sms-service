@@ -31,6 +31,9 @@ if (argv.demo) {
 	var task = detectTask('Schema');
 	console.log(task);
 
+	var task = detectTask('Memo Das ist der eigentliche Notiztext');
+	console.log(task);
+
 }	
 
 var Item = Backbone.Model.extend({
@@ -119,10 +122,26 @@ function zeroFill (val) {
 	return val;
 }	
 	
-function logTask (task) {
+function logToFile (filename, text, next) {
 	var d = new Date();
 	var date = d.getFullYear() + '-' + zeroFill(d.getMonth()+1) + '-' + zeroFill(d.getDay()) + ' ' + zeroFill(d.getHours()) + ':' + zeroFill(d.getMinutes()) + ':' + zeroFill(d.getSeconds());
-	fs.appendFile('smsshopping.log', date + "\t" + task + "\n", 'utf8', function(err){
+	fs.appendFile(filename, date + "\t" + text + "\n", 'utf8', next);
+}	
+	
+function logTask (task) {
+	logToFile('smsshopping.log', task, function(err){
+		//if (err) throw err;
+	});
+}	
+	
+function logUnknown (message) {
+	logToFile('unknown.log', message, function(err){
+		//if (err) throw err;
+	});
+}	
+	
+function logMemo (memo) {
+	logToFile('memo.log', memo, function(err){
 		//if (err) throw err;
 	});
 }	
@@ -133,18 +152,24 @@ function executeTask (task) {
         console.log("execute: " + task.origin);
         //console.log(task);
     }
-	logTask(task.origin);
+	if (task.command != 'memo') {
+		logTask(task.origin);
+	}
 	switch (task.command) {
 		case 'add':
             isDataChanged = true;
-			list.add({
+			var product = {
 				due: task.due,
 				quantity: task.quantity || 1,
 				product: task.product,
 				trader: task.trader || '',
 				store: task.store || '',
                 origin: task.origin
-			});
+			};
+			list.add(product);
+            if (task.forceReply) {
+				reply(new Backbone.Collection(product), ' wurde hinzugefügt.');
+			}
 			break;
 		case 'ls':
 			var filter = {};
@@ -167,7 +192,7 @@ function executeTask (task) {
             }
 //			console.log("match...");
 //			console.log(JSON.stringify(match));
-            reply(matchGiven);
+			reply(matchGiven, ' ist einzukaufen.');
 			break;
         case 'rm':
             var filter = {};
@@ -176,33 +201,38 @@ function executeTask (task) {
             matchGiven = list.where(filter);
 //			console.log("match...");
 //			console.log(JSON.stringify(matchGiven));
-            remove(matchGiven);
+            remove(matchGiven, task.forceReply);
             break;
         case 'man':
             submitReply(phoneNumber, 'Setzen und abfragen: (Kaufe|Einkauf)( am Do)( 3x)( Butter)( bei Aldi)( Hohe Str)(?) / Löschen: Butter gekauft');
             break;
+		case 'memo':
+			logMemo(phoneNumber+"\t"+task.origin.replace(/^memo /i,''));
+			break;
 	}
     return isDataChanged;
 }
 
-function reply (collection) {
+function reply (collection, appendix) {
     var messages = [];
     collection.forEach(function (model){
         messages.push(model.get('product'));
     });
     var text = messages.join(', ');
-    submitReply(phoneNumber, text);
+    submitReply(phoneNumber, text + appendix);
 }
 
-function remove (collection) {
+function remove (collection, forceReply) {
     var messages = [];
     collection.forEach(function (model){
         messages.push(model.get('product'));
     });
-    var text = messages.join(', ');
+    var text = messages.join(', ') || 'Nichts';
 	list.remove(collection);
 	saveData();
-    submitReply(phoneNumber, text + ' wurde entfernt.');
+	if (forceReply) {
+		submitReply(phoneNumber, text + ' wurde entfernt.');
+	}
 }
 
 function submitReply (to, message) {
@@ -258,10 +288,11 @@ function saveData () {
 function detectTask (message) {
 
 	var tasks = {
-		'add': 'kaufe( am [a-z]{0,2}){0,1}( [0-9]{1,3}x){0,1}( [a-zäöüß]{3,})( bei [a-zäöüß]{3,}){0,1}( [a-zäöüß ]{3,}){0,1}',
+		'add': 'kaufe( am [a-z]{0,2}){0,1}( [0-9]{1,3}x){0,1}( [a-zäöüß]{3,})( bei [a-zäöüß]{3,}){0,1}( [a-zäöüß ]{3,}){0,1}([!]{0,1})',
 		'ls': 'einkauf( am [a-z]{0,2}){0,1}( bei [a-zäöüß]{3,}){0,1}( [a-zäöüß ]{3,}){0,1}\\?',
-        'rm': '([a-zäöüß]{3,}) gekauft',
+        'rm': '([a-zäöüß]{3,}) gekauft([!]{0,1})',
         'man': 'sche(ma)',
+		'memo': 'memo (.+)',
 		'info': 'geschäft( [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?'
 	};
 
@@ -291,6 +322,7 @@ function detectTask (message) {
 							product: matcher[3].replace(/ /g,''),
 							trader: matcher[4].replace(/ bei /g,''),
 							store: matcher[5].replace(/^ /g,''),
+							forceReply: (matcher[6].replace(/^ /g,'')) ? 1 : 0,
                             origin: message
 						};
 						if (!task.product || task.product === 'bei') {
@@ -303,6 +335,7 @@ function detectTask (message) {
 							due: matcher[1].replace(/ am /,''),
 							trader: matcher[2].replace(/ bei /g,''),
 							store: matcher[3].replace(/^ /g,''),
+							forceReply: 1,
                             origin: message
 						};
 						break;
@@ -310,6 +343,7 @@ function detectTask (message) {
                         task = {
                             command: t,
 							product: matcher[1].replace(/ /g,''),
+							forceReply: (matcher[2].replace(/^ /g,'')) ? 1 : 0,
                             origin: message
                         };
                         break;
@@ -318,12 +352,21 @@ function detectTask (message) {
 							command: t,
 							trader: matcher[1].replace(/ /g,''),
 							store: matcher[2].replace(/^ /g,''),
+							forceReply: 1,
                             origin: message
 						};
 						break;
                     case 'man':
                         task = {
                             command: t,
+							forceReply: 1,
+                            origin: message
+                        };
+                        break;
+                    case 'memo':
+                        task = {
+                            command: t,
+							forceReply: 0,
                             origin: message
                         };
                         break;
@@ -332,6 +375,8 @@ function detectTask (message) {
 					throw Error('Task required');
 				}
 				return task;
+			} else {
+				logUnknown(tasks[t]);
 			}
 		}
 	}
