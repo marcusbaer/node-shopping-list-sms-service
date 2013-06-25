@@ -29,6 +29,10 @@ Otherwise run on command line, if messages are available by smsd (messages.db fi
 	$ smsshopping --cmd "Einkauf?" --to "+491234567"		--> run a command manually and send result to a phone number
 	$ smsshopping -v										--> always use -v to set verbose mode
 
+To see shopping list in browser, run server and open localhost
+
+	$ node server
+
 Actually understood commands
 -----------------------------
 

@@ -1,0 +1,45 @@
+﻿<!DOCTYPE html>
+<html lang="de-DE">
+<header>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width" />
+    <title>Einkaufsliste</title>
+	<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.2.0/pure-min.css">
+	<link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
+    <script src="lib/socket.io.js"></script>
+    <style type="text/css">
+        .item {
+            font-family: sans-serif;
+            font-size: 45pt;
+            margin: 7px 20px;
+            color: #dddddd;
+        }
+    </style>
+</header>
+<body>
+    <div class="app" id="app">
+        <div class="main" id="main"></div>
+    </div>
+</body>
+<script src="lib/jquery.js"></script>
+<!-- <script src="lib/jquery.service.js"></script> -->
+<script src="jquery.main.js"></script>
+<script language="javascript">
+
+    var socket = io.connect( document.location.origin );
+    socket.on('connect', function () {
+        socket.emit('refresh', {});
+        socket.on('refresh', function (items) {
+            $('#main').html('');
+            for (var i=0; i<items.length; i++) {
+                $('#main').append('<div class="item">'+items[i].name+'</div>');
+            }
+        });
+    });
+
+//    $(document).ready(function() {
+//    });
+
+
+</script>
+</html>

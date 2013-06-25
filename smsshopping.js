@@ -11,6 +11,7 @@ var verboseMode = argv.v || false;
 var runDir = argv.d || process.cwd();
 var db = dirty(runDir + '/list.db');
 var db2 = dirty(runDir + '/hashes.db');
+var watchFilename = 'message.txt';
 
 // DEMO TASKS
 
@@ -278,6 +279,7 @@ function saveHashes () {
 
 function saveData () {
 	db.set("list", list, function listSaved (){
+        writeDataToFile(watchFilename, list);
         if (verboseMode) {
             console.log("list saved..");
 //        console.log(list);
@@ -388,4 +390,11 @@ function utf8 (txt) {
 	// http://www.developershome.com/sms/gsmAlphabet.asp
 	// http://spin.atomicobject.com/2011/09/08/converting-utf-8-to-the-7-bit-gsm-default-alphabet/
     return new Buffer(txt).toString('utf8');
+}
+
+function writeDataToFile (filename, list) {
+    var products = list.pluck("product");
+    fs.writeFile(filename, products.join("\n"), 'utf8', function(err){
+        if (err) throw err;
+    });
 }
