@@ -10,6 +10,7 @@ var host = argv.h || 'localhost';
 var wwwDir = argv.www || process.cwd()+'/frontend';
 
 var watchFilename = 'message.txt';
+var memoFilename = 'memo.log';
 
 var Item = Backbone.Model.extend({
     defaults: {
@@ -47,11 +48,19 @@ io.sockets.on('connection', function (socket) {
         socket.emit('refresh', items);
         socket.broadcast.emit('refresh', items);
     });
+//    fs.readFile(memoFilename, 'utf8', function(err, data){
+//        socket.emit('memo', data);
+//        socket.broadcast.emit('memo', data);
+//    });
     socket.on('refresh', function (params) {
         getItemsFromFile(watchFilename, function(items){
             socket.emit('refresh', items);
             socket.broadcast.emit('refresh', items);
         });
+//        fs.readFile(memoFilename, 'utf8', function(err, data){
+//            socket.emit('memo', data);
+//            socket.broadcast.emit('memo', data);
+//        });
     });
     fs.watchFile(watchFilename, function (curr, prev) {
 //        console.log('the current mtime is: ' + curr.mtime);
@@ -61,6 +70,12 @@ io.sockets.on('connection', function (socket) {
             socket.broadcast.emit('refresh', items);
         });
     });
+//    fs.watchFile(memoFilename, function (curr, prev) {
+//        fs.readFile(memoFilename, 'utf8', function(err, data){
+//            socket.emit('memo', data);
+//            socket.broadcast.emit('memo', data);
+//        });
+//    });
 });
 sys.log('Starting WebSockets..');
 

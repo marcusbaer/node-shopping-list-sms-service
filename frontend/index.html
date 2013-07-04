@@ -19,6 +19,7 @@
 <body>
     <div class="app" id="app">
         <div class="main" id="main"></div>
+        <!--<pre class="memo" id="memo"></pre>-->
     </div>
 </body>
 <script src="lib/jquery.js"></script>
@@ -35,6 +36,10 @@
                 $('#main').append('<div class="item">'+items[i].name+'</div>');
             }
         });
+//        socket.emit('memo', {});
+//        socket.on('memo', function (memos) {
+//            $('#memo').html(memos);
+//        });
     });
 
 //    $(document).ready(function() {
