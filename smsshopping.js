@@ -3,7 +3,7 @@ var sys = require('util');
 var fs = require('fs');
 var _ = require('underscore');
 var Backbone = require('backbone');
-var smsd = require('../sms/index');
+var smsd = require('sms');
 //var smsd = require('sms');
 var dirty = require('dirty');
 
