@@ -31,7 +31,7 @@ Otherwise run on command line, if messages are available by smsd (messages.db fi
 
 To see shopping list in browser, run server and open localhost
 
-	$ node server
+	$ smsserver
 
 Actually understood commands
 -----------------------------

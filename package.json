@@ -21,10 +21,11 @@
 		"npm": ">=1.2.14"
 	},
 	"dependencies": {
-		"sms": ">=0.0.12"
+		"sms": ">=0.0.13"
 	},
-    "bin": {
-        "smsshopping": "./bin/smsshopping"
+    	"bin": {
+        	"smsshopping": "./bin/smsshopping",
+		"smsserver": "./bin/smsserver"
 	},
 	"main": "smsshopping.js"
 }
