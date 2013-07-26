@@ -35,7 +35,10 @@ if (argv.demo) {
 	var task = detectTask('Memo Das ist der eigentliche Notiztext');
 	console.log(task);
 
-}	
+	var task = detectTask('M Das ist der eigentliche Notiztext');
+	console.log(task);
+
+}
 
 var Item = Backbone.Model.extend({
 	defaults: {
@@ -126,7 +129,7 @@ function zeroFill (val) {
 function logToFile (filename, text, next) {
 	var d = new Date();
 	var date = d.getFullYear() + '-' + zeroFill(d.getMonth()+1) + '-' + zeroFill(d.getDate()) + ' ' + zeroFill(d.getHours()) + ':' + zeroFill(d.getMinutes()) + ':' + zeroFill(d.getSeconds());
-	fs.appendFile(filename, date + "\t" + text + "\n", 'utf8', next);
+	fs.appendFile(runDir + '/' + filename, date + "\t" + text + "\n", 'utf8', next);
 }	
 	
 function logTask (task) {
@@ -153,7 +156,7 @@ function executeTask (task) {
         console.log("execute: " + task.origin);
         //console.log(task);
     }
-	if (task.command != 'memo') {
+	if (task.command != 'memo' && task.command != 'm') {
 		logTask(task.origin);
 	}
 	switch (task.command) {
@@ -209,6 +212,9 @@ function executeTask (task) {
             break;
 		case 'memo':
 			logMemo(phoneNumber+"\t"+task.origin.replace(/^memo /i,''));
+			break;
+		case 'm':
+			logMemo(phoneNumber+"\t"+task.origin.replace(/^m /i,''));
 			break;
 	}
     return isDataChanged;
@@ -295,6 +301,7 @@ function detectTask (message) {
         'rm': '([a-zäöüß]{3,}) gekauft([!]{0,1})',
         'man': 'sche(ma)',
 		'memo': 'memo (.+)',
+		'm': 'm (.+)',
 		'info': 'geschäft( [a-z]{3,}){0,1}( [a-z ]{3,}){0,1}\\?'
 	};
 
@@ -358,20 +365,21 @@ function detectTask (message) {
                             origin: message
 						};
 						break;
-                    case 'man':
-                        task = {
-                            command: t,
+					case 'man':
+						task = {
+							command: t,
 							forceReply: 1,
-                            origin: message
-                        };
-                        break;
-                    case 'memo':
-                        task = {
-                            command: t,
+              origin: message
+            };
+            break;
+					case 'm':
+					case 'memo':
+						task = {
+							command: t,
 							forceReply: 0,
-                            origin: message
-                        };
-                        break;
+							origin: message
+						};
+						break;
 				}
 				if (!task.command) {
 					throw Error('Task required');
