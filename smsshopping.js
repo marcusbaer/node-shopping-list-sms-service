@@ -3,8 +3,7 @@ var sys = require('util');
 var fs = require('fs');
 var _ = require('underscore');
 var Backbone = require('backbone');
-var smsd = require('sms');
-//var smsd = require('sms');
+var sms = require('sms');
 var dirty = require('dirty');
 
 var verboseMode = argv.v || false;
@@ -12,6 +11,8 @@ var runDir = argv.d || process.cwd();
 var db = dirty(runDir + '/list.db');
 var db2 = dirty(runDir + '/hashes.db');
 var watchFilename = 'message.txt';
+
+var USE_HASHES = false;
 
 // DEMO TASKS
 
@@ -37,6 +38,8 @@ if (argv.demo) {
 
 	var task = detectTask('M Das ist der eigentliche Notiztext');
 	console.log(task);
+
+    process.exit();
 
 }
 
@@ -94,28 +97,34 @@ function initialize () {
 
 function readTasks (callback) {
 	var tasks = [];
-	//smsd.fetchMessagesFromGateway(function filterMessages(storedMessages) { // fetches directly from gateway
-	smsd.readMessagesFromDb(function filterMessages(storedMessages) { // reads from data source
+//	sms.fetchMessagesFromGateway(function filterMessages(storedMessages) { // fetches directly from gateway
+	sms.readMessagesFromDb(function filterMessages(storedMessages) { // reads from data source
         var newMessageDetected = false;
-		storedMessages.forEach(function (message) {
-            if (hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
-                // ignore message
-                if (verboseMode) {
-                    console.log("ignore " + message.get('hash'));
+        if (storedMessages && storedMessages.length>0) {
+            storedMessages.forEach(function (message) {
+                if (USE_HASHES && hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
+                    // ignore message
+                    if (verboseMode) {
+                        console.log("ignore " + message.get('hash'));
+                    }
+                } else {
+                    if (USE_HASHES) {
+                        newMessageDetected = true;
+                        hashes.push(message.get('hash'));
+                    }
+                    console.log(message.get('message'));
+                    var task = detectTask(message.get('message'), message.get('phoneNumber'));
+                    if (!_.isEmpty(task)) {
+                        phoneNumber = message.get('phoneNumber');
+                        tasks.push(task);
+                    }
                 }
-            } else {
-                newMessageDetected = true;
-                hashes.push(message.get('hash'));
-                var task = detectTask(message.get('message'));
-                if (!_.isEmpty(task)) {
-					phoneNumber = message.get('phoneNumber');
-                    tasks.push(task);
-                }
+            });
+            if (USE_HASHES && newMessageDetected) {
+                saveHashes();
             }
-		});
-        if (newMessageDetected) {
-            saveHashes();
         }
+        console.log(tasks);
 		callback(tasks);
 	});
 }
@@ -255,7 +264,7 @@ function submitReply (to, message) {
 		var to = new String(to);
 		to = (to.indexOf('+') !== 0) ? '+' + to : to;
 
-		smsd.sendMessage({
+		sms.sendMessage({
 			to: to,
 			message: message,
 			success: function(response) {
@@ -275,7 +284,7 @@ function loadData (callback) {
 }
 
 function removeMessages (callback) {
-	smsd.removeMessagesFromGateway(callback);
+	sms.removeMessagesFromGateway(callback);
 }
 
 function saveHashes () {
@@ -293,12 +302,15 @@ function saveData () {
 	});
 }
 
-function detectTask (message) {
+function detectTask (message, phoneNumber) {
 
 	var tasks = {
 		'add': 'kaufe( am [a-z]{0,2}){0,1}( [0-9]{1,3}x){0,1}( [a-zäöüß]{3,})( bei [a-zäöüß]{3,}){0,1}( [a-zäöüß ]{3,}){0,1}([!]{0,1})',
+        'google': 'google (.+)',
 		'ls': 'einkauf( am [a-z]{0,2}){0,1}( bei [a-zäöüß]{3,}){0,1}( [a-zäöüß ]{3,}){0,1}\\?',
         'rm': '([a-zäöüß]{3,}) gekauft([!]{0,1})',
+        'mailaddress': '(.+)@([a-z0-9-]{3,}).([a-z]{2,}) (.+)',
+        'mailalias': '@([a-z0-9-.]{3,}) (.+)',
         'man': 'sche(ma)',
 		'memo': 'memo (.+)',
 		'm': 'm (.+)',
@@ -308,7 +320,7 @@ function detectTask (message) {
 	var task = {};
 	
 	message = utf8(message);
-	
+
 	for (var t in tasks) {
 	
 		var taskreg = new RegExp(tasks[t],'i');
@@ -318,9 +330,9 @@ function detectTask (message) {
 			for (var i=0; i<matcher.length; i++) {
 				matcher[i] = matcher[i] || ''
 			}
-            //if (verboseMode) {
-            //  console.log(matcher);
-            //}
+//            if (verboseMode) {
+//              console.log(matcher);
+//            }
 			if (matcher.length>1) {
 				switch (t) {
 					case 'add':
@@ -369,9 +381,9 @@ function detectTask (message) {
 						task = {
 							command: t,
 							forceReply: 1,
-              origin: message
-            };
-            break;
+                            origin: message
+                        };
+                        break;
 					case 'm':
 					case 'memo':
 						task = {
@@ -380,6 +392,28 @@ function detectTask (message) {
 							origin: message
 						};
 						break;
+                    case 'mailaddress':
+                        task = {
+                            command: 'sendmail',
+                            to: matcher[1] + '@' + matcher[2] + '.' + matcher[3],
+                            from: getSenderByPhoneNumber(phoneNumber),
+                            message: matcher[4]
+                        };
+                        break;
+                    case 'mailalias':
+                        task = {
+                            command: 'sendmail',
+                            to: getMailAddressByAlias(matcher[1]),
+                            from: getSenderByPhoneNumber(phoneNumber),
+                            message: matcher[2]
+                        };
+                        break;
+                    case 'google':
+                        task = {
+                            command: 'google',
+                            text: matcher[1]
+                        };
+                        break;
 				}
 				if (!task.command) {
 					throw Error('Task required');
@@ -393,6 +427,14 @@ function detectTask (message) {
 		
 	return task;
 }		
+
+function getMailAddressByAlias (alias) {
+    return alias + '@domain.com';
+}
+
+function getSenderByPhoneNumber (phoneNumber) {
+    return 'me@domain.com';
+}
 
 function utf8 (txt) {
 	// http://www.developershome.com/sms/gsmAlphabet.asp
