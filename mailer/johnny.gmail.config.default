@@ -1,0 +1,6 @@
+exports = module.exports = {
+    from: "Johnny Five",
+    subject: "Info",
+    user: "yourname@gmail.com",
+    pass: "yourpass"
+};

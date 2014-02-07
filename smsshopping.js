@@ -3,8 +3,9 @@ var sys = require('util');
 var fs = require('fs');
 var _ = require('underscore');
 var Backbone = require('backbone');
-var sms = require('sms');
+var sms = require('../node-sms/index');
 var dirty = require('dirty');
+var childProcess = require('child_process');
 
 var verboseMode = argv.v || false;
 var runDir = argv.d || process.cwd();
@@ -98,7 +99,7 @@ function initialize () {
 function readTasks (callback) {
 	var tasks = [];
 //	sms.fetchMessagesFromGateway(function filterMessages(storedMessages) { // fetches directly from gateway
-	sms.readMessagesFromDb(function filterMessages(storedMessages) { // reads from data source
+	sms.readNewMessagesFromDb(function filterMessages(storedMessages) { // reads from data source
         var newMessageDetected = false;
         if (storedMessages && storedMessages.length>0) {
             storedMessages.forEach(function (message) {
@@ -163,7 +164,7 @@ function executeTask (task) {
     var isDataChanged = false;
     if (verboseMode || argv.try) {
         console.log("execute: " + task.origin);
-        //console.log(task);
+//        console.log(task);
     }
 	if (task.command != 'memo' && task.command != 'm') {
 		logTask(task.origin);
@@ -225,6 +226,9 @@ function executeTask (task) {
 		case 'm':
 			logMemo(phoneNumber+"\t"+task.origin.replace(/^m /i,''));
 			break;
+        case 'sendmail':
+            sendMail(task.account, task.alias, task.message, task.subject);
+            break;
 	}
     return isDataChanged;
 }
@@ -396,7 +400,9 @@ function detectTask (message, phoneNumber) {
                         task = {
                             command: 'sendmail',
                             to: matcher[1] + '@' + matcher[2] + '.' + matcher[3],
-                            from: getSenderByPhoneNumber(phoneNumber),
+                            alias: '',
+                            account: getSenderByPhoneNumber(phoneNumber),
+                            subject: 'Kurznachricht',
                             message: matcher[4]
                         };
                         break;
@@ -404,7 +410,9 @@ function detectTask (message, phoneNumber) {
                         task = {
                             command: 'sendmail',
                             to: getMailAddressByAlias(matcher[1]),
-                            from: getSenderByPhoneNumber(phoneNumber),
+                            alias: matcher[1],
+                            account: getSenderByPhoneNumber(phoneNumber),
+                            subject: 'Kurznachricht',
                             message: matcher[2]
                         };
                         break;
@@ -429,11 +437,13 @@ function detectTask (message, phoneNumber) {
 }		
 
 function getMailAddressByAlias (alias) {
-    return alias + '@domain.com';
+    return alias;
+//    return alias + '@domain.com';
 }
 
 function getSenderByPhoneNumber (phoneNumber) {
-    return 'me@domain.com';
+    return 'marcus';
+//    return 'me@domain.com';
 }
 
 function utf8 (txt) {
@@ -446,5 +456,43 @@ function writeDataToFile (filename, list) {
     var products = list.pluck("product");
     fs.writeFile(filename, products.join("\n"), 'utf8', function(err){
         if (err) throw err;
+    });
+}
+
+function run_cmd(cmd, args, cb, end) {
+    var spawn = require('child_process').spawn,
+        child = spawn(cmd, args),
+        me = this;
+    child.stdout.on('data', function (buffer) { cb(me, buffer) });
+    child.stdout.on('end', end);
+}
+
+function sendMailNotWorking (account, alias, message, subject) {
+    var nodemail = new run_cmd(
+        'node mailer/mailer.js', ['--account='+account, '--recipient='+alias, '--subject="'+subject+'"', '--message="'+message+'"'],
+        function (me, buffer) { me.stdout += buffer.toString() },
+        function () { console.log(foo.stdout) }
+    );
+}
+
+function sendMail (account, alias, message, subject, callback) {
+//    var command = 'node mailer/mailer.js --account='+account+' --recipient='+alias+' --subject="'+subject+'" --message="'+message+'"';
+    var command = 'node mailer/mailer.js --account='+account+' --recipient='+alias+' --message="'+message+'"';
+//    fs.writeFile('mail.sh', command);
+    var proc = childProcess.exec(command, function (error, stdout, stderr) {
+        if (error) {
+            console.log(error.stack);
+            console.log('Error code: '+error.code);
+            console.log('Signal received: '+error.signal);
+        }
+//		console.log('Child Process STDOUT: '+stdout);
+//		console.log('Child Process STDERR: '+stderr);
+    });
+
+    proc.on('exit', function (code) {
+//		sys.log('Child process exited with exit code '+code);
+        if (callback) {
+            callback();
+        }
     });
 }

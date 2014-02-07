@@ -5,7 +5,7 @@ var fs = require('fs');
 var tools = require('./tools');
 var Backbone = require("backbone");
 
-var port = argv.p || 80;
+var port = argv.p || 8080;
 var host = argv.h || 'localhost';
 var wwwDir = argv.www || process.cwd()+'/frontend';
 
