@@ -81,16 +81,18 @@ sys.log('Starting WebSockets..');
 
 function getItemsFromFile (filename, next) {
     fs.readFile(filename, 'utf8', function(err, data){
-        var list = data.split("\n");
-        var newItems = [];
-        for (var i=0; i<list.length; i++) {
-            newItems.push({
-                id: i,
-                name: list[i].replace(/\r/g,'')
-            });
+        if (data) {
+            var list = data.split("\n");
+            var newItems = [];
+            for (var i=0; i<list.length; i++) {
+                newItems.push({
+                    id: i,
+                    name: list[i].replace(/\r/g,'')
+                });
+            }
+            items = new Items(newItems);
+            next(items);
         }
-        items = new Items(newItems);
-        next(items);
     });
 }
 
