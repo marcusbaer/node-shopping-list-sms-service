@@ -4,16 +4,14 @@ var fs = require('fs');
 var _ = require('underscore');
 var Backbone = require('backbone');
 var sms = require('../node-sms/index');
+//var sms = require('sms/index');
 var dirty = require('dirty');
 var childProcess = require('child_process');
 
 var verboseMode = argv.v || false;
 var runDir = argv.d || process.cwd();
 var db = dirty(runDir + '/list.db');
-var db2 = dirty(runDir + '/hashes.db');
 var watchFilename = 'message.txt';
-
-var USE_HASHES = false;
 
 // DEMO TASKS
 
@@ -60,7 +58,6 @@ var Items = Backbone.Collection.extend({
 });
 
 var list = new Items();
-var hashes = [];
 var phoneNumber = null;
 
 if (argv.cmd || argv.try) {
@@ -98,38 +95,25 @@ function initialize () {
 
 function readTasks (callback) {
 	var tasks = [];
-//	sms.fetchMessagesFromGateway(function filterMessages(storedMessages) { // fetches directly from gateway
-	sms.readNewMessagesFromDb(function filterMessages(storedMessages) { // reads from data source
-        var newMessageDetected = false;
-        if (storedMessages && storedMessages.length>0) {
-            storedMessages.forEach(function (message) {
-                if (USE_HASHES && hashes && hashes.length>0 && _.indexOf(hashes, message.get('hash'))>-1) {
-                    // ignore message
-                    if (verboseMode) {
-                        console.log("ignore " + message.get('hash'));
-                    }
-                } else {
-                    if (USE_HASHES) {
-                        newMessageDetected = true;
-                        hashes.push(message.get('hash'));
-                    }
-                    console.log(message.get('message'));
-                    var task = detectTask(message.get('message'), message.get('phoneNumber'));
-                    if (!_.isEmpty(task)) {
-                        phoneNumber = message.get('phoneNumber');
-                        tasks.push(task);
-                    }
+
+	sms.readNewMessagesAsModelFromFile(function filterMessages(newMessages) { // reads from data source
+        if (newMessages && newMessages.length>0) {
+            newMessages.forEach(function (message) {
+                console.log(message.get('message'));
+                var task = detectTask(message.get('message'), message.get('phoneNumber'));
+                if (!_.isEmpty(task)) {
+                    phoneNumber = message.get('phoneNumber');
+                    tasks.push(task);
                 }
             });
-            if (USE_HASHES && newMessageDetected) {
-                saveHashes();
-            }
         }
-        console.log(tasks);
+        if (verboseMode) {
+            console.log(tasks);
+        }
 		callback(tasks);
 	});
 }
-	
+
 function zeroFill (val) {
 	val = new String(val);
 	if (val.length === 1) val = '0' + val;
@@ -281,19 +265,9 @@ function submitReply (to, message) {
 function loadData (callback) {
 	db.on('load', function() {
 		list = new Items(db.get('list') || []);
-        hashes = db2.get('hashes') || [];
 		callback();
 	});
 //	callback();
-}
-
-function removeMessages (callback) {
-	sms.removeMessagesFromGateway(callback);
-}
-
-function saveHashes () {
-    db2.set("hashes", hashes, function hashesSaved (){
-    });
 }
 
 function saveData () {
@@ -323,7 +297,7 @@ function detectTask (message, phoneNumber) {
 
 	var task = {};
 	
-	message = utf8(message);
+//	message = utf8(message);
 
 	for (var t in tasks) {
 	
