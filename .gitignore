@@ -10,6 +10,7 @@ config.js
 *.out
 *.pid
 *.gz
+message.txt
 
 .idea
 
